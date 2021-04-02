@@ -1,4 +1,4 @@
-# Установвка
+# Установка
 
 sudo apt install python3-tk
 
