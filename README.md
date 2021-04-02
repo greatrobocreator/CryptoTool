@@ -1,7 +1,8 @@
-Установвка:
+#Установвка
 
+sudo apt-get install python3-tk
 pip install -r requirements.txt
 
-Запуск:
+#Запуск
 
-python main.py
+python3 main.py
