@@ -1,7 +1,8 @@
 import PySimpleGUI as sg
 import matplotlib.pyplot as plt
-from Cypher import *
-from Analyzer import *
+from Cypher import CesarCypher, VigenereCypher
+from Analyzer import FrequencyAnalyzer
+from Cracker import CesarCracker, VigenereCracker
 
 
 def is_number(n):
@@ -12,18 +13,29 @@ def is_number(n):
         return False
 
 
-def create_options(_crypto, layout):
-    if hasattr(_crypto, 'options'):
-        for i, option in enumerate(_crypto.options):
-            layout.insert(i + 1, [sg.Text(option[0]),
-                                  sg.InputText(key=option[0],
-                                               enable_events=True)])
+def create_options(options, layout, index=1):
+    types = {
+        'number': sg.InputText,
+        'text': sg.InputText,
+        'multiline': sg.Multiline,
+        'combobox': sg.InputCombo
+    }
+
+    for i, option in enumerate(options):
+
+        args = []
+        if option[1] == 'combobox':
+            args = [option[2]]
+
+        layout.insert(i + index, [sg.Text(option[0]),
+                                  types[option[1]](*args, key=option[0],
+                                                   enable_events=True)])
 
 
 def create_encrypt_decrypt_window(class_name):
     menu_def = [['File', ['Open', 'Save', 'Exit']]]
 
-    # ------ GUI Defintion ------ #
+    # ------ GUI Definition ------ #
     layout = [
         [sg.Menu(menu_def, )],
         [sg.Multiline(size=(60, 10), key='-INPUT-')],
@@ -33,7 +45,7 @@ def create_encrypt_decrypt_window(class_name):
 
     _crypto = class_name()
 
-    create_options(_crypto, layout)
+    create_options(_crypto.options, layout)
 
     window = sg.Window(str(class_name), layout,
                        default_element_size=(12, 1), auto_size_text=False,
@@ -47,9 +59,9 @@ def create_encrypt_decrypt_window(class_name):
 
 
 def create_analyzer_window(class_name):
-    menu_def = [['File', ['Open', 'Save', 'Exit']]]
+    menu_def = [['File', ['Open', 'Exit']]]
 
-    # ------ GUI Defintion ------ #
+    # ------ GUI Definition ------ #
     layout = [
         [sg.Menu(menu_def, )],
         [sg.Multiline(size=(60, 10), key='-INPUT-')],
@@ -58,7 +70,33 @@ def create_analyzer_window(class_name):
 
     _crypto = class_name()
 
-    create_options(_crypto, layout)
+    create_options(_crypto.options, layout)
+
+    window = sg.Window(str(class_name), layout,
+                       default_element_size=(12, 1), auto_size_text=False,
+                       auto_size_buttons=False,
+                       default_button_element_size=(12, 1),
+                       element_justification='c', finalize=True)
+
+    window._crypto = _crypto
+
+    return window
+
+
+def create_cracker_window(class_name):
+    menu_def = [['File', ['Open', 'Exit']]]
+
+    # ------ GUI Definition ------ #
+    layout = [
+        [sg.Menu(menu_def, )],
+        [sg.Multiline(size=(60, 10), key='-INPUT-')],
+        [sg.Button('Crack')]
+    ]
+
+    _crypto = class_name()
+
+    create_options(_crypto.options, layout)
+    create_options(_crypto.output_options, layout, len(layout))
 
     window = sg.Window(str(class_name), layout,
                        default_element_size=(12, 1), auto_size_text=False,
@@ -75,13 +113,19 @@ def main():
     sg.ChangeLookAndFeel('LightGreen')
     # sg.SetOptions(element_padding=(0, 0))
 
+    encrypt_decrypt = {'Cesar': CesarCypher,
+                       'Vigenere': VigenereCypher}
+    analyzers = {'Frequency': FrequencyAnalyzer}
+    crackers = {'Cesar frequency': CesarCracker,
+                'Vigenere (coincidence index)': VigenereCracker}
+
     # ------ Menu Definition ------ #
     menu_def = [['File', ['Exit']],
-                ['Encrypt/Decrypt', ['Cesar'], ],
-                ['Analysis', ['Frequency']],
-                ['Crack', ['Cesar frequency']]]
+                ['Encrypt/Decrypt', list(encrypt_decrypt.keys())],
+                ['Analysis', list(analyzers.keys())],
+                ['Crack', list(crackers.keys())]]
 
-    # ------ GUI Defintion ------ #
+    # ------ GUI Definition ------ #
     layout = [
         [sg.Menu(menu_def, )],
         [sg.Multiline(size=(60, 10))]
@@ -92,9 +136,6 @@ def main():
                             auto_size_buttons=False,
                             default_button_element_size=(12, 1), finalize=True)
 
-    encrypt_decrypt = {'Cesar': CesarCypher}
-    analyzers = {'Frequency': FrequencyAnalyzer}
-
     # ------ Loop & Process button menu choices ------ #
 
     while True:
@@ -103,13 +144,16 @@ def main():
             if window == main_window:
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
-                print('Button = ', event)
+
                 # ------ Process menu choices ------ #
                 if event in encrypt_decrypt:
                     create_encrypt_decrypt_window(encrypt_decrypt[event])
 
                 if event in analyzers:
                     create_analyzer_window(analyzers[event])
+
+                if event in crackers:
+                    create_cracker_window(crackers[event])
 
             else:
                 if event == sg.WIN_CLOSED or event == 'Exit':
@@ -123,30 +167,47 @@ def main():
                     except:
                         sg.popup('Invalid file')
 
+                if event == 'Save':
+                    path = sg.popup_get_file('Input file',
+                                             save_as=True,
+                                             no_window=True)
+                    if path:
+                        try:
+                            with open(path, 'w') as file:
+                                file.write(values['-OUTPUT-'])
+                        except:
+                            sg.popup('Invalid path')
+
                 if event == 'Encrypt':
                     window['-OUTPUT-'].update(
-                        window._crypto.encrypt(values['-INPUT-']))
+                        window._crypto.encrypt(values['-INPUT-'].strip()))
                 if event == 'Decrypt':
                     window['-INPUT-'].update(
-                        window._crypto.decrypt(values['-OUTPUT-']))
-
-                option = list(
-                    filter(lambda x: x[0] == event, window._crypto.options))
-                if len(option) > 0:
-                    option = option[0]
-                    if option[1] == 'text' or is_number(values[option[0]]):
-                        setattr(window._crypto, option[0],
-                                values[option[0]] if option[1] == 'test' else int(
-                                    values[option[0]]))
+                        window._crypto.decrypt(values['-OUTPUT-'].strip()))
 
                 if event == 'Analyze':
                     x, data = window._crypto.analyze(values['-INPUT-'])
                     plt.bar(x, data)
                     plt.show()
+
+                if event == 'Crack':
+                    output = window._crypto.crack(values['-INPUT-'])
+                    for i, option in enumerate(window._crypto.output_options):
+                        window[option[0]].update(output[i])
+
+                option = list(filter(lambda x: x[0] == event,
+                                     window._crypto.options))
+
+                if len(option) > 0:
+                    option = option[0]
+                    if option[1] != 'number' or is_number(values[option[0]]):
+                        setattr(window._crypto, option[0],
+                                values[option[0]] if option[1] != 'number' else
+                                int(values[option[0]]))
+
         except Exception as e:
             print('Error:', e)
 
 
 if __name__ == "__main__":
-        main()
-
+    main()
