@@ -24,12 +24,15 @@ def create_options(options, layout, index=1):
     for i, option in enumerate(options):
 
         args = []
+        kwargs = {}
         if option[1] == 'combobox':
             args = [option[2]]
+        elif option[1] == 'multiline':
+            kwargs = {'size': (20, 5)}
 
         layout.insert(i + index, [sg.Text(option[0]),
                                   types[option[1]](*args, key=option[0],
-                                                   enable_events=True)])
+                                                   enable_events=True, **kwargs)])
 
 
 def create_encrypt_decrypt_window(class_name):

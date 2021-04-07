@@ -72,7 +72,7 @@ class VigenereCracker(Cracker):
 
         ma = []
         key_lens = []
-        for key_len in range(1, text_len // 20):
+        for key_len in range(1, text_len // 10):
 
             mean = 0
             for i in range(key_len):
