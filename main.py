@@ -1,7 +1,7 @@
 import PySimpleGUI as sg
 import matplotlib.pyplot as plt
 from Cypher import CesarCypher, VigenereCypher
-from Analyzer import FrequencyAnalyzer
+from Analyzer import FrequencyAnalyzer, CoincidenceIndexAnalyzer
 from Cracker import CesarCracker, VigenereCracker
 
 
@@ -118,7 +118,8 @@ def main():
 
     encrypt_decrypt = {'Cesar': CesarCypher,
                        'Vigenere': VigenereCypher}
-    analyzers = {'Frequency': FrequencyAnalyzer}
+    analyzers = {'Frequency': FrequencyAnalyzer,
+                 'CoincidenceIndex': CoincidenceIndexAnalyzer}
     crackers = {'Cesar frequency': CesarCracker,
                 'Vigenere (coincidence index)': VigenereCracker}
 

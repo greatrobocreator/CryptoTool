@@ -1,4 +1,4 @@
-from Analyzer import FrequencyAnalyzer
+from Analyzer import FrequencyAnalyzer, CoincidenceIndexAnalyzer
 
 
 class Cracker:
@@ -61,30 +61,18 @@ class VigenereCracker(Cracker):
     def __init__(self):
         self.language = 'English'
 
-    @staticmethod
-    def _coincidence_index(text):
-        frequency = FrequencyAnalyzer().analyze(text)[1]
-        return sum([x ** 2 for x in frequency])
-
     def crack(self, text):
 
-        text_len = sum(x in self.alphabet for x in text)
+        indexes = CoincidenceIndexAnalyzer().analyze(text)
 
         ma = []
         key_lens = []
-        for key_len in range(1, text_len // 10):
+        for key_len, index in zip(*indexes):
 
-            mean = 0
-            for i in range(key_len):
-                mean += self._coincidence_index(text[i::key_len])
-            mean /= key_len
-
-            print(key_len, ':', mean)
-
-            if len(ma) != 0 and mean > 1.25 * (sum(ma) / len(ma)):
+            if len(ma) != 0 and index > 1.25 * (sum(ma) / len(ma)):
                 key_lens.append(key_len)
 
-            ma.append(mean)
+            ma.append(index)
             if len(key_lens) != 0:
                 ma = ma[1:]
 
